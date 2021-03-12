@@ -5,7 +5,7 @@ import time
 import xbmcgui
 from resources.lib.modules.log_utils import log
 from resources.lib.modules import liveresolver, control
-res = liveresolver.Liveresolver(multi=True)
+res = liveresolver.Liveresolver()
 
 try:
    import queue
@@ -67,7 +67,7 @@ class Thread(threading.Thread):
 		try:
 			while True:
 				url = self.input_queue.get()
-				resolved = res.resolve(url)
+				resolved = res.resolve_search(url)
 				if resolved:
 					self.output.append(url)
 				else:

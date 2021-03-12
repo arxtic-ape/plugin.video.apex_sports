@@ -4,7 +4,10 @@ from .modules import adhosts
 from . import resolvers
 from resources.lib.modules.log_utils import log
 from resources.lib.modules.constants import USER_AGENT
-
+from resources.lib.modules import control
+import time
+import threading
+import ctypes
 try:
 	from urllib.parse import urlparse
 except:
@@ -13,31 +16,62 @@ except:
 
 class Liveresolver:
 
-	def __init__(self, headers = {'user-agent': USER_AGENT}, multi=False):
+	def __init__(self, headers = {'user-agent': USER_AGENT}):
 		self.headers = headers	
 		self.session = requests.Session()
 		self.session.headers.update(headers)
 		self.referer_map = {}
-		self.multi_search = multi
 
-	
 	def resolve(self, url):
+		resolved = []
+		t = Thread(self.__resolve, url, resolved)
+		t.start()
+		t1 = time.time()
+		TIMEOUT = int(control.setting("resolver_timeout"))
+		while t.is_alive():
+			if ((time.time() - t1) > TIMEOUT):
+				t.stop()
+			time.sleep(0.5)
+		t.join()
+		try:
+			u = resolved[0]
+		except:
+			u = None
+		return u
+
+
+	def __resolve(self, url):
 		self.url = url
 		self.url = self.url.replace('http:http:', 'http:')
 		url = self.url
 		self.referer_map[self.url] = ''
+
 		#check if first url is resolvable
-		if not self.multi_search:
-			try:
-				html = self.session.get(self.url, timeout=10).text
-			except Exception as e:
-				log('Liveresolver: Error while trying to access {}: \n\n{}'.format(url,e))
-				return None
+		try:
+			html = self.session.get(self.url, timeout=10).text
+		except Exception as e:
+			log('Liveresolver: Error while trying to access {}: \n\n{}'.format(url,e))
+			return None
+	
+		if len(resolvers.check(url, html)) > 0:
+			resolved = resolvers.resolve(url, self.referer_map[url], self.referer_map)
+			if resolved:
+				return resolved
+		iframes = self.__findIframes(self.url, links=[url])
+		resolved = None
+		for l in iframes:
+			resolved = resolvers.resolve(l, self.referer_map[l], self.referer_map)
+			if resolved:
+				break
 		
-			if len(resolvers.check(url, html)) > 0:
-				resolved = resolvers.resolve(url, self.referer_map[url], self.referer_map)
-				if resolved:
-					return resolved
+			
+		return resolved
+	
+	def resolve_search(self, url):
+		self.url = url
+		self.url = self.url.replace('http:http:', 'http:')
+		url = self.url
+		self.referer_map[self.url] = ''
 		
 		#else go through iframes
 		iframes = self.__findIframes(self.url, links=[url])
@@ -138,3 +172,36 @@ class Liveresolver:
 				urls.append(u)
 		return urls
 
+class Thread(threading.Thread):
+	def __init__(self, func, url, out):
+		self.func = func
+		self.url = url
+		self.out = out
+		self._return = None
+		threading.Thread.__init__(self)
+
+	def run(self):
+		try:
+			resolved = self.func(self.url)
+			self.out.append(resolved)
+		except Exception as e:
+		 	log(e)
+		 	self.out.append(None)
+		log(self.out)
+
+	def get_id(self): 
+
+		# returns id of the respective thread 
+		if hasattr(self, '_thread_id'): 
+			return self._thread_id 
+		for id, thread in threading._active.items(): 
+			if thread is self: 
+				return id
+
+	def stop(self):
+		thread_id = self.get_id() 
+		res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 
+			  ctypes.py_object(SystemExit)) 
+		if res > 1: 
+			ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0) 
+			print('Exception raise failure')

@@ -67,17 +67,17 @@ elif mode[0] == 'open_category':
 	sources = os.listdir(AddonPath + '/resources/lib/sources/{}'.format(category))
 	for source in sources:
 		if '.pyo' not in source and '__init__' not in source and '__pycache__' not in source:
-			#try:
+			try:
 				source = source.replace('.py','')
 				exec("from resources.lib.sources.{} import {}".format(category, source))
 				info = eval(source+".info()")
 				if info.enabled:
 					addon.add_item({'mode': 'open_site', 'category': category, 'site': info.mode}, {'label': info.name, 'title': info.name}, img=icon_path(info.icon), fanart=fanart,is_folder=True)
-			#except Exception as e:
-			#	log(str(e))
-			#		pass
-
-	addon.add_item({'mode': 'search', 'category': category}, {'label': 'Search', 'title': 'Search'}, img='', fanart=fanart,is_folder=True)
+			except Exception as e:
+				log(str(e))
+				pass
+	if category == 'live_sport':
+		addon.add_item({'mode': 'search', 'category': category}, {'label': 'Search', 'title': 'Search'}, img=icon_path('search.png'), fanart=fanart,is_folder=True)
 
 	addon.end_of_directory()
 
