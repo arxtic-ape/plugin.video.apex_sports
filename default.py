@@ -180,11 +180,11 @@ elif mode[0]=='open_site_category':
 	exec("from resources.lib.sources.{} import {}".format(category, site))
 	info = eval(site+".info()")
 	source = eval(site+".main(url='{}')".format(url))
-	events = source.events(url)
 	try:
-		events = source.events()
-	except:
+		events = source.events(url)
+	except Exception as e:
 		events = []
+
 	for event in events:
 		try:
 			img = event[2]
@@ -224,9 +224,8 @@ elif mode[0]=='get_links':
 	exec("from resources.lib.sources.{} import {}".format(category, site))
 	info = eval(site+".info()")
 	source = eval(site+".main()")
-	events = source.links(url)
 	try:
-		events = source.links()
+		events = source.links(url)
 	except:
 		events = []
 	
