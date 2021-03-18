@@ -32,7 +32,7 @@ class main():
 
 
 	def _links(self, url):
-		result = requests.get(self.base).text
+		result = requests.get(self.base, headers={'user-agent': constants.USER_AGENT}).text
 		soup = webutils.bs(result)
 		table = soup.find('span',{'class': url})
 		links = table.findAll('tr')
@@ -59,7 +59,7 @@ class main():
 
 	def events(self):
 		import requests
-		headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
+		headers = {'User-Agent': constants.USER_AGENT, 'referer': self.base}
 		result = requests.get(self.base, headers=headers).text
 		reg = re.compile('<span class=[\"\'](.+?)[\"\'].+\s*.+<div class=[\"\']menutitle[\"\'].+?content\s*=\s*[\"\']([^\"\']+).+?<span class=[\"\']t[\"\']>.+?</span>(.+?)</div>')
 		events = re.findall(reg,result)
@@ -128,7 +128,7 @@ class main():
 
 	def resolve(self,url):
 		if 'it.rojadirecta' in url:
-			html = requests.get(url, headers={'referer':self.base}).text
+			html = requests.get(url, headers={'referer':self.base, 'user-agent': constants.USER_AGENT}).text
 			url = re.findall('href\s*=\s*[\"\']([^\"\']+)', html)[0]
 		from resources.lib.modules import liveresolver
 		d = liveresolver.Liveresolver().resolve(url)

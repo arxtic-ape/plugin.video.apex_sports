@@ -92,7 +92,7 @@ elif mode[0] == 'search':
 		sources = os.listdir(AddonPath + '/resources/lib/sources/{}'.format(category))
 		for source in sources:
 			if '.pyo' not in source and '__init__' not in source and '__pycache__' not in source and '.pyc' not in source:
-				#try:
+				try:
 					site = source.replace('.py','')
 					exec("from resources.lib.sources.{} import {}".format(category, site))
 					info = eval(site+".info()")
@@ -115,8 +115,8 @@ elif mode[0] == 'search':
 								else:
 									ctxt = []
 								addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label': event[1],'title': event[1]}, img=img, fanart=fanart,  is_folder=True)
-				#except:
-				#	pass
+				except:
+					pass
 
 	addon.end_of_directory()
 
@@ -138,7 +138,10 @@ elif mode[0] == 'open_site':
 			source = eval(site+".main(url=next_page)")
 		else:
 			source = eval(site+".main()")
-		events = source.events()
+		try:
+			events = source.events()
+		except:
+			events = []
 		for event in events:
 			try:
 				img = icon_path(event[2])
@@ -178,6 +181,10 @@ elif mode[0]=='open_site_category':
 	info = eval(site+".info()")
 	source = eval(site+".main(url='{}')".format(url))
 	events = source.events(url)
+	try:
+		events = source.events()
+	except:
+		events = []
 	for event in events:
 		try:
 			img = event[2]
@@ -218,7 +225,10 @@ elif mode[0]=='get_links':
 	info = eval(site+".info()")
 	source = eval(site+".main()")
 	events = source.links(url)
-
+	try:
+		events = source.links()
+	except:
+		events = []
 	
 	for event in events:
 		if (control.setting('link_precheck') == 'false'):
