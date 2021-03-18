@@ -1,4 +1,4 @@
-from resources.lib.modules import webutils, control
+from resources.lib.modules import webutils, control, cache, linkSearch, constants
 from resources.lib.modules.log_utils import log
 import re, os, requests
 try:
@@ -27,36 +27,61 @@ class main():
 	def __init__(self, url = ''):
 		self.base = control.setting('roja_base')          
 
-	def links(self, url):
+	def links(self, url, timeout=int(control.setting('cache_timeout'))):
+		return cache.get(self._links, timeout, url)
+
+
+	def _links(self, url):
 		result = requests.get(self.base).text
 		soup = webutils.bs(result)
 		table = soup.find('span',{'class': url})
 		links = table.findAll('tr')
 		links.pop(0)
 		links = self.__prepare_links(links)
+
+		if len(links) == 0:
+			return []
+		titles = {}
+		for l in links:
+			titles[l[0]] = l[1]
+
+		links = [u[0] for u in links]
+
+		ret = linkSearch.getLinks(links)
+
+		
+		out2 = []
+		for u in ret:
+			out2.append((u, titles[u]))
+
+		return out2
 		return links
 
 	def events(self):
 		import requests
 		headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
 		result = requests.get(self.base, headers=headers).text
-		reg = re.compile('<span class="(.+?)".+\s*.+<div class="menutitle".+?<span class="t">(.+?)</span>(.+?)</div>')
+		reg = re.compile('<span class=[\"\'](.+?)[\"\'].+\s*.+<div class=[\"\']menutitle[\"\'].+?content\s*=\s*[\"\']([^\"\']+).+?<span class=[\"\']t[\"\']>.+?</span>(.+?)</div>')
 		events = re.findall(reg,result)
 		events = self.__prepare_events(events)
 		return events
 	
 
 	@staticmethod
-	def convert_time(time):
+	def convert_time(time,year, month, day):
+		def month_converter(month):
+			months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+			return months.index(month) + 1
 		li = time.split(':')
 		hour,minute=li[0],li[1]
+		#month = month_converter(month)
 		import datetime
 		import pytz
-		d = pytz.timezone(str(pytz.timezone('Europe/Ljubljana'))).localize(datetime.datetime(2000 , 1, 1, hour=int(hour), minute=int(minute)))
-		timezona= control.setting('timezone_new')
-		my_location=pytz.timezone(pytz.all_timezones[int(timezona)])
+		d = pytz.timezone(str(pytz.timezone('Europe/Ljubljana'))).localize(datetime.datetime(int(year), int(month), int(day), hour=int(hour), minute=int(minute)))
+		timezona = control.setting('timezone_new')
+		my_location = pytz.timezone(constants.get_zone(int(timezona)))
 		convertido=d.astimezone(my_location)
-		fmt = "%H:%M"
+		fmt = "%m/%d %H:%M"
 		time=convertido.strftime(fmt)
 		return time
 
@@ -71,8 +96,13 @@ class main():
 				title = re.sub('<span class="es">.*?</span>','',title).replace('<span class="en">','').replace('</span>','').replace('()','').replace('</time>','').replace('<span itemprop="name">','')
 				sport,title = re.findall('(.*)<b>\s*(.*?)\s*</b>',title)[0]
 				sport = sport.replace(':','')
-				time = self.convert_time(event[1])
-				title = u'[COLOR orange](%s)[/COLOR] (%s) [B]%s[/B]'%(time,sport,title)
+				time = event[1]
+				t1, t2 = time.split('T')
+				time = t2
+				year, month, day = t1.split('-')
+				time = self.convert_time(time, year, month, day)
+				#title = u'[COLOR orange](%s)[/COLOR] (%s) [B]%s[/B]'%(time,sport,title)
+				title = u'(%s) [B]%s[/B] - %s'%(time, title, sport)
 				title = title.encode('utf-8')
 				new.append((url,title, info().icon))
 			except:
@@ -109,13 +139,20 @@ class main():
 
 		if d:
 			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return ''
+		return ' '
 
 	def search(self, query):
 		query = query.lower()
 		evs = self.events()
 		out = []
 		for ev in evs:
-			if query in ev[1].lower():
-				out.append(ev)
+			try: 
+				v = ev[1].lower()
+				if query in v:
+					out.append(ev)
+			except: 
+				v = ev[1].lower()
+				if query.encode('utf-8') in v:
+					out.append(ev)
+			
 		return out

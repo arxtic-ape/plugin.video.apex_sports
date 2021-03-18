@@ -43,7 +43,6 @@ class main():
 			events = l.findAll('div', {'class':'col-md-6 col-sm-6'})
 			for e in events:
 				url = e.find('a')['href']
-				log(url)
 				names = re.sub('-live-stream[^\/$]*\/?', '', url)
 				names = names.split('/')[-1].split('vs')
 				divs = e.find('div', {'class':'match'}).findAll('div', {'class':'team-name'})
@@ -54,17 +53,17 @@ class main():
 					scores = e.findAll('div', {'class':'score'})
 					home = scores[0].getText()
 					away = scores[1].getText()
-					title = u'([COLOR red]LIVE[/COLOR]) {} [B]{}[/B] - [B]{}[/B] {} | {}'.format(homeName,home, away, awayName, live.getText())
+					title = u'([COLOR red]LIVE[/COLOR]) {} [B]{}[/B] - [B]{}[/B] {} | {}'.format(homeName, home, away, awayName, live.getText())
 				else:
 					time = e.find('div', {'class':'status'}).getText()
 					time = self.convert_time(time)
 					if time is None:
 						continue
-					title = u'({}) {} - {}'.format(time, homeName, awayName)
+					title = u'({}) [B]{} - {}[/B]'.format(time, homeName, awayName)
 				out.append((url,title))
 		return out
 
-	def links(self, url, timeout=10):
+	def links(self, url, timeout=int(control.setting('cache_timeout'))):
 		return self._links(url)
 
 	def _links(self, url):
@@ -73,8 +72,6 @@ class main():
 		html = requests.get(url, headers={'Referer':self.base}).text
 		id = re.findall('streamsmatchid\s*=\s*(\d+)\;',  html, flags=re.I)[0]
 
-		#try:
-		#	   https://sportscentral.io/streams-table/221963/basketball?new-ui=1&origin=nbabite.com
 		uri = 'https://sportscentral.io/streams-table/{}/basketball?new-ui=1&origin=nbabite.com'.format(id)
 		html = requests.get(uri, headers={'user-agent': constants.USER_AGENT, 'referer':url}).text
 		soup = webutils.bs(html).find('table', {'class':'table streams-table-new'})
@@ -109,7 +106,7 @@ class main():
 		import pytz
 		d = pytz.timezone(str(pytz.timezone('US/Eastern'))).localize(datetime.datetime(2000 , 1, 1, hour=int(hour), minute=int(minute)))
 		timezona = control.setting('timezone_new')
-		my_location=pytz.timezone(pytz.all_timezones[int(timezona)])
+		my_location = pytz.timezone(constants.get_zone(int(timezona)))
 		convertido=d.astimezone(my_location)
 		fmt = "%H:%M"
 		time=convertido.strftime(fmt)
@@ -125,4 +122,4 @@ class main():
 
 		if d:
 			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return ''
+		return ' '

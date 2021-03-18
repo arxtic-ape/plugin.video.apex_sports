@@ -46,11 +46,9 @@ class main():
 			live = g['status'] == 'Live'
 			replay = g['status'] == 'Final'
 			if live:
-				title = u'[COLOR red](LIVE)[/COLOR] {} - {}'.format(g['home_name'], g['away_name'])
-			
-
+				title = u'[COLOR red](LIVE)[/COLOR] [B]{} - {}[/B]'.format(g['home_name'], g['away_name'])
 			else:
-				title = u'({}) {} - {}'.format(start, g['home_name'], g['away_name'])
+				title = u'({}) [B]{} - {}[/B]'.format(start, g['home_name'], g['away_name'])
 			
 			
 			if g['streams'] != []:
@@ -74,7 +72,7 @@ class main():
 		import pytz
 		d = pytz.timezone(str(pytz.timezone('Europe/London'))).localize(datetime.datetime(2000 , int(month), int(day), hour=int(hour), minute=int(minute)))
 		timezona= control.setting('timezone_new')
-		my_location=pytz.timezone(pytz.all_timezones[int(timezona)])
+		my_location = pytz.timezone(constants.get_zone(int(timezona)))
 		convertido=d.astimezone(my_location)
 		fmt = "%m/%d %H:%M"
 		time=convertido.strftime(fmt)
@@ -97,3 +95,4 @@ class main():
 				media_id = g['streams'][index]['mediaid']
 
 				return 'https://api.nhl66.ir/api/get_master_url/{}.m3u8|Referer=https://nhl66.ir'.format(media_id)
+		return ' '

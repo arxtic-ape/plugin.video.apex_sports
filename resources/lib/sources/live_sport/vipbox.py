@@ -1,10 +1,19 @@
 from resources.lib.modules import webutils, control, linkSearch, cache, constants
 from resources.lib.modules.log_utils import log
-import re, requests
+import re, requests, sys
 try:
 	from urllib.parse import quote, urlencode
 except:
 	from urllib import quote, urlencode
+
+if sys.version_info[0] < 3 or sys.version_info[1] < 4:
+    # python version < 3.3
+    import time
+    def timestamp(date):
+        return time.mktime(date.timetuple())
+else:
+    def timestamp(date):
+        return date.timestamp()
 
 class info():
 	def __init__(self):
@@ -31,7 +40,6 @@ class main():
 		cats = re.findall("href=[\"\']([^\"\']+)[\"\'] title=[\"\'](.+?) Online[\"\']", html)
 		cs = []
 		for c in cats:
-			log(c[1].lower())
 			cs.append((self.base + c[0], c[1], 'icons/{}.png'.format(c[1].lower())))
 		
 		return cs
@@ -48,18 +56,20 @@ class main():
 			title = event['title']
 			url  = self.base + event['href']
 			try:
-				time = event.findAll('span')[1].getText()
-
+				time = event.findAll('span')[1]['content']
 			except:
 				time = None
 			if time:
-				time = self.convert_time(time)
-				title = u"({}) {}".format(time, title)
+				t1, t2 = time.split('T')
+				time = t2
+				year, month, day = t1.split('-')
+				time, stamp = self.convert_time(time, year, month, day)
+				title = u"({}) [B]{}[/B]".format(time, title)
 
 			out.append((url, title))
 		return out
 
-	def links(self, url, timeout=10):
+	def links(self, url, timeout=int(control.setting('cache_timeout'))):
 		#return self._links(url)
 		return cache.get(self._links, timeout, url)
 
@@ -76,7 +86,6 @@ class main():
 
 		ret = linkSearch.getLinks(inp)
 
-		
 		out2 = []
 		for u in ret:
 			out2.append((u, titles[u]))
@@ -84,20 +93,22 @@ class main():
 		return out2
 
 	@staticmethod
-	def convert_time(time):
-		
+	def convert_time(time,year, month, day):
+		def month_converter(month):
+			months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+			return months.index(month) + 1
 		li = time.split(':')
 		hour,minute=li[0],li[1]
-	
+		#month = month_converter(month)
 		import datetime
 		import pytz
-		d = pytz.timezone(str(pytz.timezone('Europe/London'))).localize(datetime.datetime(2000 , 1, 1, hour=int(hour), minute=int(minute)))
-		timezona= control.setting('timezone_new')
-		my_location=pytz.timezone(pytz.all_timezones[int(timezona)])
+		d = pytz.timezone(str(pytz.timezone('Europe/London'))).localize(datetime.datetime(int(year), int(month), int(day), hour=int(hour), minute=int(minute)))
+		timezona = control.setting('timezone_new')
+		my_location = pytz.timezone(constants.get_zone(int(timezona)))
 		convertido=d.astimezone(my_location)
-		fmt = "%H:%M"
+		fmt = "%m/%d %H:%M"
 		time=convertido.strftime(fmt)
-		return time
+		return time, timestamp(convertido)
 
 	def resolve(self,url):
 		from resources.lib.modules import liveresolver

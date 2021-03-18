@@ -90,7 +90,7 @@ class main():
 		return out
 
 	#timeout in minutes
-	def links(self, url, timeout=0):
+	def links(self, url, timeout=int(control.setting('cache_timeout'))):
 		#return self._links(url)
 		return cache.get(self._links, timeout, url)
 
@@ -140,4 +140,4 @@ class main():
 
 		if d:
 			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return ''
+		return ' '

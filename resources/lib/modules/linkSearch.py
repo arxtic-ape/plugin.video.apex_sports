@@ -14,7 +14,7 @@ except ImportError:
 
 
 def getLinks(out):
-	if control.setting('link_precheck') == 'true' or len(out) < 10 :
+	if control.setting('link_precheck') == 'true' or len(out) < int(control.setting('min_links')) :
 		return out
 
 	done = 0
@@ -40,17 +40,15 @@ def getLinks(out):
 
 	t_start = time.time()
 	while True:
-		msg = "Links processed: {} / {} - Working links: {}\n\nTime elapsed: {}s".format(len(output_queue), len(out), len(filter(None, output_queue)), int(round((time.time() - t_start))))
+		
+		msg = "Links processed: {} / {} - Working links: {}\n\nTime elapsed: {}s".format(len(output_queue), len(out), len(list(filter(None, output_queue))), int(round((time.time() - t_start))))
 		percent = int(round((len(output_queue)/float(len(out)))*100))
 		pDialog.update(percent, msg)
 		if pDialog.iscanceled() or ((time.time() - t_start) > TIMEOUT) or int(round((len(output_queue)/float(len(out)))*100)) == 100:
 			pDialog.update(100)
 			pDialog.close()
 			for t in threads:
-				t.stop()
-			for t in threads:
 				del t
-
 			break
 		time.sleep(0.5)
 
@@ -71,27 +69,8 @@ class Thread(threading.Thread):
 				if resolved:
 					self.output.append(url)
 				else:
-					log(url)
 					self.output.append(None)
 
 
 		except Exception as e:
-			log(e)
-			return
-
-	def get_id(self): 
-
-		# returns id of the respective thread 
-		if hasattr(self, '_thread_id'): 
-			return self._thread_id 
-		for id, thread in threading._active.items(): 
-			if thread is self: 
-				return id
-
-	def stop(self):
-		thread_id = self.get_id() 
-		res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 
-			  ctypes.py_object(SystemExit)) 
-		if res > 1: 
-			ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0) 
-			print('Exception raise failure') 
+			self.output.append(None)

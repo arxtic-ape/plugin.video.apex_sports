@@ -59,8 +59,6 @@ class Resolver():
 			play_url = play_url.replace('////','//')
 
 		headers = {'Referer': url, 'User-Agent':USER_AGENT, 'Host': urlparse(play_url).netloc, 'Origin': 'https://'+urlparse(url).netloc, 'Connection':'keep-alive'}
-		log(play_url)
-		log(headers)
 		return {'url': play_url, 'headers': headers}
 		#except:
 		#return None

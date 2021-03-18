@@ -8,9 +8,9 @@ else:
 	import urlparse
 	from urllib import urlencode
 
-
+import sys
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
-from resources.lib.modules import control
+from resources.lib.modules import control, cache
 from resources.lib.modules.log_utils import log
 
 addon = Addon('plugin.video.apex_sports', sys.argv)
@@ -91,12 +91,15 @@ elif mode[0] == 'search':
 		query = keyboard.getText()
 		sources = os.listdir(AddonPath + '/resources/lib/sources/{}'.format(category))
 		for source in sources:
-			if '.pyo' not in source and '__init__' not in source and '__pycache__' not in source:
-				try:
+			if '.pyo' not in source and '__init__' not in source and '__pycache__' not in source and '.pyc' not in source:
+				#try:
 					site = source.replace('.py','')
 					exec("from resources.lib.sources.{} import {}".format(category, site))
 					info = eval(site+".info()")
-					if info.searchable:
+					srch = False
+					try: srch = info.searchable
+					except: pass
+					if srch:
 						s = eval(site+".main()")
 						events = s.search(query)
 						for event in events:
@@ -107,9 +110,13 @@ elif mode[0] == 'search':
 							if not info.multilink:
 								addon.add_item({'mode': 'play', 'category': category, 'url': event[0],'title':event[1], 'img': img,'site':site}, {'label': event[1], 'title': event[1].rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
 							else:
-								addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label': event[1],'title': event[1]}, img=img, fanart=fanart,is_folder=True)
-				except:
-					pass
+								if (control.setting('link_precheck') == 'false'):
+									ctxt = [('Rescrape links', 'RunPlugin(%s)'%addon.build_plugin_url({'mode': 'get_links_refresh', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img, 'timeout': 'true'}))]
+								else:
+									ctxt = []
+								addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label': event[1],'title': event[1]}, img=img, fanart=fanart,  is_folder=True)
+				#except:
+				#	pass
 
 	addon.end_of_directory()
 
@@ -141,9 +148,13 @@ elif mode[0] == 'open_site':
 			if not info.multilink:
 				addon.add_item({'mode': 'play', 'url': event[0], 'category': category, 'title':event[1], 'img': img,'site':site}, {'label': event[1], 'title':event[1].rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
 			else:
+				if (control.setting('link_precheck') == 'false'):
+					ctxt = [('Rescrape links', 'RunPlugin(%s)'%addon.build_plugin_url({'mode': 'get_links_refresh', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img, 'timeout': 'true'}))]
+				else:
+					ctxt = []
 				addon.add_item({'mode': 'get_links','site':site, 'category': category, 'url': event[0], 'title':event[1], 'img': img}, {'label': event[1], 'title': event[1]}, img=img, fanart=fanart,is_folder=True)
 		if (info.paginated and source.next_page()):
-			addon.add_item({'mode': 'open_site', 'site': info.mode, 'category': category, 'next' : source.next_page()}, {'label':'Next Page >>' ,'title': 'Next Page >>'}, img=icon_path(info.icon), fanart=fanart,is_folder=True)
+			addon.add_item({'mode': 'open_site', 'site': info.mode, 'category': category, 'next' : source.next_page()}, {'label':'Next Page >>' ,'title': 'Next Page >>'}, img=icon_path(info.icon),  fanart=fanart,is_folder=True)
 
 	else:
 		source = eval(site+".main()")
@@ -184,7 +195,16 @@ elif mode[0]=='open_site_category':
 	
 	addon.end_of_directory()
 
-
+elif mode[0] == 'refresh_links':
+	url = args['url'][0]
+	site = args['site'][0]
+	category = args['category'][0]
+	
+	exec("from resources.lib.sources.{} import {}".format(category, site))
+	info = eval(site+".info()")
+	source = eval(site+".main()")
+	cache.remove(source._links, url)
+	xbmc.executebuiltin("Container.Refresh()")
 
 elif mode[0]=='get_links':
 	
@@ -193,7 +213,7 @@ elif mode[0]=='get_links':
 	site = args['site'][0]
 	category = args['category'][0]
 	img = args['img'][0]
-
+	
 	exec("from resources.lib.sources.{} import {}".format(category, site))
 	info = eval(site+".info()")
 	source = eval(site+".main()")
@@ -201,7 +221,13 @@ elif mode[0]=='get_links':
 
 	
 	for event in events:
-		addon.add_item({'mode': 'play', 'url': event[0],'title':title, 'img': img, 'category': category, 'site':site}, {'label': event[1], 'title':title.rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
+		if (control.setting('link_precheck') == 'false'):
+				ctxt = [('Rescrape links','RunPlugin(%s)'%addon.build_plugin_url({'mode': 'refresh_links', 'url': url, 'category': category, 'site':site}))]
+		else:
+			ctxt = []
+		addon.add_item({'mode': 'play', 'url': event[0],'title':title, 'img': img, 'category': category, 'site':site}, {'label': event[1], 'title':title.rstrip('[/B]')}, img=img, fanart=fanart,contextmenu_items=ctxt, is_folder=False)
+	if len(events) == 0:
+		addon.add_item({'mode': 'refresh_links', 'url': url, 'category': category, 'site':site}, {'label': 'Rescrape links', 'title': 'Rescrape links', 'img':img})
 	addon.end_of_directory()
 	
 
@@ -239,7 +265,7 @@ elif mode[0] == 'play':
 
 elif mode[0]=='tools':
 	addon.add_item({'mode': 'settings'}, {'label':'Settings', 'title':'Settings'}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
-	addon.add_item({'mode': 'keyboard_open'}, {'label':'Open URL', 'title':'Open URL'}, img=icon_path('my_castaway.jpg'), fanart=fanart,is_folder=True)
+	addon.add_item({'mode': 'keyboard_open'}, {'label':'Open URL', 'title':'Open URL'}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
 	addon.add_item({'mode': 'clear_cache'}, {'label':'Clear addon cache', 'title':'Clear addon cache'}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
 
 	addon.end_of_directory()
@@ -262,7 +288,7 @@ elif mode[0]=='reddit':
 	for item in items:
 
 		delete = addon.build_plugin_url({'mode':'delete_subreddit','reddit':item})
-		context = [('Remove subreddit','RunPlugin(%s)'%delete)]
+		context = [('Remove subreddit','Container.Update(%s)'%delete)]
 		addon.add_item({'mode': 'open_subreddit', 'reddit': item}, {'title': item}, img=icon_path('reddit.jpg'), fanart=fanart,contextmenu_items=context,is_folder=True)
 
 	addon.add_item({'mode': 'add_subreddit'}, {'title': '[B][COLOR green]Add a subreddit[/COLOR][/B]'}, img=icon_path('reddit.jpg'), fanart=fanart)    
@@ -292,7 +318,9 @@ elif mode[0]=='open_subreddit_event':
 	items = subreddits.event_links(url)
 	for event in items:
 		browser = 'plugin://plugin.program.chrome.launcher/?url=%s&mode=showSite&stopPlayback=no'%(event[0])
-		context = [('Open in browser','RunPlugin(%s)'%browser)]
+
+
+		context = [('Open in browser','Container.Update(%s)'%browser)]
 
 		addon.add_video_item({'mode': 'play', 'url': event[0],'title':event[1], 'img': icon_path('reddit.jpg')}, {'title': event[1]}, img=icon_path('reddit.jpg'), fanart=fanart, contextmenu_items=context)
 	addon.end_of_directory()

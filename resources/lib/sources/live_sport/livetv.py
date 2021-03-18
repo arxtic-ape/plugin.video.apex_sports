@@ -1,13 +1,21 @@
 # -*- coding: utf-8 -*-
-from resources.lib.modules import webutils, control, cache, linkSearch
-import re
+from resources.lib.modules import webutils, control, cache, linkSearch, constants
+import re, sys
 from resources.lib.modules.log_utils import log
 try:
 	from urllib.parse import urlparse, quote_plus, urlencode
 except:
 	from urlparse import urlparse
 	from urllib import quote_plus, urlencode
-
+# python 2 doesn't support date.datetime.timestamp()
+if sys.version_info[0] < 3 or sys.version_info[1] < 4:
+    # python version < 3.3
+    import time
+    def timestamp(date):
+        return time.mktime(date.timetuple())
+else:
+    def timestamp(date):
+        return date.timestamp()
 class info():
 	def __init__(self):
 		self.mode = 'livetv'
@@ -42,7 +50,7 @@ class main():
 		events = self.__prepare_events(events)
 		return events
 
-	def links(self, url, timeout=10):
+	def links(self, url, timeout=int(control.setting('cache_timeout'))):
 		#return self._links(url)
 		return cache.get(self._links, timeout, url)
 
@@ -61,14 +69,11 @@ class main():
 
 		ret = linkSearch.getLinks(links)
 
-		
 		out2 = []
 		for u in ret:
 			out2.append((u, titles[u]))
 
 		return out2
-
-
 
 
 	@staticmethod
@@ -81,13 +86,13 @@ class main():
 		month = month_converter(month)
 		import datetime
 		import pytz
-		d = pytz.timezone(str(pytz.timezone('Europe/London'))).localize(datetime.datetime(2000 , int(month), int(day), hour=int(hour), minute=int(minute)))
+		d = pytz.timezone('Europe/London').localize(datetime.datetime(2021 , int(month), int(day), hour=int(hour), minute=int(minute)))
 		timezona = control.setting('timezone_new')
-		my_location = pytz.timezone(pytz.all_timezones[int(timezona)])
+		my_location = pytz.timezone(constants.get_zone(int(timezona)))
 		convertido=d.astimezone(my_location)
 		fmt = "%m/%d %H:%M"
 		time=convertido.strftime(fmt)
-		return time
+		return time, timestamp(convertido)
 		
 
 	def __prepare_links(self,links):
@@ -144,28 +149,28 @@ class main():
 
 			time = re.findall('(\d+:\d+)',info)[0]
 			day,month = re.findall('(\d+) (\w+) at',info)[0]
-			time = self.convert_time(time,month, day)
+			time, timestamp = self.convert_time(time,month, day)
 			color = 'orange'
 			if 'live.gif' in str(ev):
 				time = '[COLOR red]LIVE[/COLOR]'
-			title = u'(%s) [B]%s[/B] - (%s)'%(time, event, league)
-			# import HTMLParser
-			# title = HTMLParser.HTMLParser().unescape(title)
-			# title = title.encode('utf-8')         
-			new.append((url,title))
+			title = u'(%s) [B]%s[/B] - (%s)'%(time, event, league)        
+			new.append(((url,title), timestamp))
+
+		new = list(set(new))
+		new.sort(key=lambda x: x[1])	
+		new = [x[0] for x in new]
 		return new
 
 	def resolve(self,url):
 		from resources.lib.modules import liveresolver
 		d = liveresolver.Liveresolver().resolve(url)
 
-
 		if d:
 			if d['url'].startswith('plugin://'):
 				return d['url']
 
 			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return None
+		return ' '
 	
 	def search(self, query):
 		query = quote_plus(query)
@@ -193,8 +198,8 @@ class main():
 				day = t1.split(' ')[0].strip()
 				month = t1.split(' ')[1].strip()
 				t = t2.strip()
-				tm = self.convert_time(t, month, day)
-				title = u'[COLOR orange](%s)[/COLOR] [B]%s[/B] - (%s)'%(tm, ev, league)
+				tm, stamp = self.convert_time(t, month, day)
+				title = u'(%s) [B]%s[/B] - (%s)'%(tm, ev, league)        
 				out.append((url, title))
 
 		return out

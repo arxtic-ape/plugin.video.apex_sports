@@ -65,7 +65,6 @@ class main():
 
 	#timeout in minutes
 	def links(self, url, timeout=10):
-		#return self._links(url)
 		return cache.get(self._links, timeout, url)
 
 	def _links(self, id):
@@ -73,8 +72,6 @@ class main():
 		out2 = []
 		counter = 0
 		
-
-
 		uri = 'https://api.sportsurge.net/streams/list?event={}'.format(id)
 		self.session.headers.update({'referer': self.base})
 		html = requests.get(uri).text
@@ -110,7 +107,6 @@ class main():
 			return None
 		if d['url'].startswith('plugin://'):
 			return d['url']
-
 		if d:
 			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return ''
+		return ' '

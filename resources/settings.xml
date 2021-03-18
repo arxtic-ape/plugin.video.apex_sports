@@ -46,10 +46,13 @@
             <setting id="link_precheck" type="bool" label="Disable link searching" default="true"/>
             <setting label="Number of searching threads" type="number" id="threads_num" default="40" enable="!eq(-1,true)"/>
             <setting label="Search timeout in seconds" type="number" id="search_timeout" default="30" enable="!eq(-2,true)"/>
+            <setting label="Results cache timeout (minutes)" type="number" id="cache_timeout" default="20" enable="!eq(-3,true)"/>
+            <setting label="Minimum links to activate search" type="number" id="min_links" default="10" enable="!eq(-4,true)"/>
     </category>
     
     <category label="Sites">
     	<setting id="roja_base" type="text" visible="true" label="Rojadirecta base url" default="http://www.rojadirecta.me"/>
     	<setting id="livetv_base" type="text" visible="true" label="Livetv.ru base url" default="http://livetv.sx"/>
+        <setting id="rescrape_flag" type="bool" default="false" visible="false"/>
     </category>
 </settings>
