@@ -18,10 +18,10 @@ class info():
 
 class main():
 	
-	def __init__(self,url = 'http://fullmatchtv.com/nhl'):
-		self.base = 'http://fullmatchtv.com'
+	def __init__(self,url = 'https://fullmatchtv.com/nhl'):
+		self.base = 'https://fullmatchtv.com'
 		self.url = url
-		self.post_url = 'http://fullmatchtv.com/wp-admin/admin-ajax.php?td_theme_name=Newspaper&v=10.3.7'
+		self.post_url = 'https://fullmatchtv.com/wp-admin/admin-ajax.php?td_theme_name=Newspaper&v=10.3.7'
 		self.postData = self.get_post()
 		self.postData['td_filter_value'] =  self.url.split('##')[0]
 		
@@ -95,7 +95,15 @@ class main():
 			data = j['td_data']
 		items = re.findall('href=[\"\']([^\"\']+)[\"\'].+?title=[\"\']([^\"\']+)[\"\'].+?img.+?src=[\"\']([^\"\']+)[\"\']',data)
 		for item in items:
-			title = self.clean(item[1])
+			try:
+				import HTMLParser
+				parser = HTMLParser.HTMLParser()
+				unescape = parser.unescape
+			except:
+				import html
+				unescape = html.unescape
+				
+			title = unescape(item[1])
 			out.append((item[0], title, item[2]))
 		
 

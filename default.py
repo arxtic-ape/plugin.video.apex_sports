@@ -52,15 +52,16 @@ elif mode[0]=='keyboard_open':
 	keyboard.doModal()
 	if keyboard.isConfirmed():
 		query = keyboard.getText()
+		if '.m3u8' in query:
+			xbmc.Player().play(query)
+		else:
+			from resources.lib.modules import liveresolver
+			resolved = liveresolver.Liveresolver().resolve(query)
+			if resolved:
+				resolved = '{}|{}'.format(resolved['url'], urlencode(resolved['headers']))
+				
 
-		
-		from resources.lib.modules import liveresolver
-		resolved = liveresolver.Liveresolver().resolve(query)
-		if resolved:
-			resolved = '{}|{}'.format(resolved['url'], urlencode(resolved['headers']))
-			
-
-		xbmc.Player().play(resolved)
+			xbmc.Player().play(resolved)
 
 elif mode[0] == 'open_category':
 	category = args['category'][0]
@@ -140,7 +141,8 @@ elif mode[0] == 'open_site':
 			source = eval(site+".main()")
 		try:
 			events = source.events()
-		except:
+		except Exception as e:
+			log(e)
 			events = []
 		for event in events:
 			try:
@@ -183,6 +185,7 @@ elif mode[0]=='open_site_category':
 	try:
 		events = source.events(url)
 	except Exception as e:
+		log(e)
 		events = []
 
 	for event in events:
@@ -195,7 +198,11 @@ elif mode[0]=='open_site_category':
 		if not info.multilink:
 			addon.add_item({'mode': 'play', 'category': category, 'url': event[0],'title':event[1], 'img': img,'site':site}, {'label': event[1], 'title':event[1].rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
 		else:
-			addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label':event[1] ,'title': event[1]}, img=img, fanart=fanart,is_folder=True)
+			if (control.setting('link_precheck') == 'false'):
+				ctxt = [('Rescrape links', 'RunPlugin(%s)'%addon.build_plugin_url({'mode': 'get_links_refresh', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img, 'timeout': 'true'}))]
+			else:
+				ctxt = []
+			addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label':event[1] ,'title': event[1]}, img=img, fanart=fanart,contextmenu_items=ctxt, is_folder=True)
 	
 	if (info.paginated and source.next_page()):
 		addon.add_item({'mode': 'open_site_category', 'category': category, 'site': info.mode, 'url': source.next_page()}, {'label': 'Next Page >>' ,'title': 'Next Page >>'}, img=icon_path(info.icon), fanart=fanart,is_folder=True)
@@ -210,7 +217,10 @@ elif mode[0] == 'refresh_links':
 	exec("from resources.lib.sources.{} import {}".format(category, site))
 	info = eval(site+".info()")
 	source = eval(site+".main()")
-	cache.remove(source._links, url)
+	try:
+		cache.remove(source._links, url)
+	except:
+		pass
 	xbmc.executebuiltin("Container.Refresh()")
 
 elif mode[0]=='get_links':
@@ -236,7 +246,11 @@ elif mode[0]=='get_links':
 			ctxt = []
 		addon.add_item({'mode': 'play', 'url': event[0],'title':title, 'img': img, 'category': category, 'site':site}, {'label': event[1], 'title':title.rstrip('[/B]')}, img=img, fanart=fanart,contextmenu_items=ctxt, is_folder=False)
 	if len(events) == 0:
-		addon.add_item({'mode': 'refresh_links', 'url': url, 'category': category, 'site':site}, {'label': 'Rescrape links', 'title': 'Rescrape links', 'img':img})
+		try: 
+			a = hasattr(site, _links)
+			addon.add_item({'mode': 'refresh_links', 'url': url, 'category': category, 'site':site}, {'label': 'Rescrape links', 'title': 'Rescrape links', 'img':img})
+		except:
+			pass
 	addon.end_of_directory()
 	
 

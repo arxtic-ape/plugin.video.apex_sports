@@ -57,6 +57,7 @@ class Liveresolver:
 			resolved = resolvers.resolve(url, self.referer_map[url], self.referer_map)
 			if resolved:
 				return resolved
+
 		iframes = self.__findIframes(self.url, links=[url])
 		resolved = None
 		for l in iframes:

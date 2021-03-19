@@ -28,7 +28,10 @@
         <setting type="lsep" label="Live TV" />
         <setting id="disable_live_tv" type="bool" label="Disable category" default="false"/>
         <setting id="filmon" type="bool" label="Filmon" default="true" enable="!eq(-1,true)"/>
-        <setting id="streamlive" type="bool" label="Streamlive.to" default="true" enable="!eq(-2,true)"/>
+        <setting id="lmshows" type="bool" label="LMShows" default="true" enable="!eq(-2,true)"/>
+        <setting id="streamlive" type="bool" label="Streamlive.to" default="true" enable="!eq(-3,true)"/>
+        <setting id="sportsbay" type="bool" label="sportsbay.org" default="true" enable="!eq(-4,true)"/>
+        <setting id="ustvgo" type="bool" label="USTVGo" default="true" enable="!eq(-5,true)"/>
     </category>
 
     <category label="Replays & Highlights">

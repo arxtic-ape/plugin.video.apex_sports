@@ -7,8 +7,8 @@ name = addon.getAddonInfo('name')
 
 
 def log(msg, level=xbmc.LOGINFO):
-    # override message level to force logging when addon logging turned on
-    if addon.getSetting('addon_debug') == 'true' and level == xbmc.LOGDEBUG:
+
+    if addon.getSetting('addon_debug') == 'true':
         if sys.version_info[0] == 3:
             level = xbmc.LOGINFO
         else:

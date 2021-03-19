@@ -1,6 +1,6 @@
 from resources.lib.modules import cache
 from resources.lib.modules.log_utils import log
-from resources.lib.modules import control, constants, webutils
+from resources.lib.modules import control, constants, webutils, cache
 import requests
 import re
 try:
@@ -13,7 +13,7 @@ class info():
 		self.mode = 'sportsbay'
 		self.name = 'Sportsbay.org'
 		self.icon = 'sportsbay.png'
-		self.enabled = False
+		self.enabled = control.setting(self.mode) == 'true'
 		self.paginated = True
 		self.categorized = False
 		self.multilink = True
@@ -44,7 +44,8 @@ class main():
 				img = 'https:' + img
 
 			title = u'(%s) %s'%(country, ch)
-			out.append((link, title, img))
+			if cache.get(self.links, 2000, link) != []:
+				out.append((link, title, img))
 		return out
 		
 
@@ -55,10 +56,16 @@ class main():
 			links = []
 			try:
 				l = re.findall('streamframe.+?src\s*=\s*[\"\']([^\"\']+)', html)[0]
-				links.append((l, 'Link #1'))
+				if 'lowend' not in l:
+					links.append((l, 'Link #1'))
 			except:
 				pass
-
+		else:
+			ls = []
+			for l in links:
+				if 'lowend' not in l:
+					ls.append(l)
+			links = ls	
 		return links
 
 	def resolve(self,url):

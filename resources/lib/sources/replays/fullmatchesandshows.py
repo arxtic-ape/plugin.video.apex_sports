@@ -45,24 +45,6 @@ class main():
 		}
 		return data
 
-	def clean(self,text):
-		def fixup(m):
-			text = m.group(0)
-			c = None
-			if text[:3] == "&#x":
-				try:
-					c = unichr(int(text[3:-1], 16)).encode('utf-8')
-				except:
-					c = chr(int(text[3:-1], 16))#.encode('utf-8')
-				return c
-			else:
-				try:
-					c = unichr(int(text[2:-1])).encode('utf-8')
-				except:
-					c = chr(int(text[2:-1]))#.encode('utf-8')
-				return c
-		try :return re.sub("(?i)&#\w+;", fixup, text)#.encode('ISO-8859-1').decode('utf-8'))
-		except:return re.sub("(?i)&#\w+;", fixup, text)#.encode("ascii", "ignore").decode('utf-8'))
 
 	def events(self):
 		out = []
@@ -74,8 +56,15 @@ class main():
 		data = j['td_data']
 		items = re.findall('href=[\"\']([^\"\']+)[\"\'].+?title=[\"\']([^\"\']+)[\"\'].+?img.+?src=[\"\']([^\"\']+)[\"\']',data)
 		for item in items:
-			title = self.clean(item[1])
-			out.append((item[0],title,item[2]))
+			try:
+				import HTMLParser
+				parser = HTMLParser.HTMLParser()
+				unescape = parser.unescape
+			except:
+				import html
+				unescape = html.unescape
+			title = unescape(item[1])
+			out.append((item[0], title, item[2]))
 		
 
 		return out
