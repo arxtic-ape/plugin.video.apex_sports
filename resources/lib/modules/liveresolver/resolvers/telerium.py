@@ -3,7 +3,7 @@ import requests
 import json
 import sys
 from resources.lib.modules.constants import USER_AGENT
-
+from resources.lib.modules.log_utils import log
 try:
 	from urllib.parse import urlparse
 except:
@@ -29,7 +29,7 @@ class Resolver():
 		return bool(re.search('telerium.+?embed\/\d+', url))
 
 	def resolve(self, url, html, referer = None):
-		try:
+		#try:
 			s = requests.session()
 
 			s.headers.update(self.headers)
@@ -37,13 +37,13 @@ class Resolver():
 				s.headers.update({'Referer': referer})
 			# html = s.get(url).text
 			
-			id = re.findall('telerium.+?embed\/(\d+)', url)[0]
+			host, id = re.findall('(telerium\.[^/]+).+?embed\/(\d+)', url)[0]
 			from datetime import datetime, timedelta
 			now = datetime.now()
 			now = now.replace(second=0, microsecond=0) +timedelta(hours=24)
 			now = int(round(timestamp(now))*1000)
 			s.headers.update({'referer':url})
-			uri = 'https://telerium.club/streams/{}/{}.json'.format(id, now)
+			uri = 'https://{}/streams/{}/{}.json'.format(host, id, now)
 			a = json.loads(s.get(uri).text)
 			token = 'http://' + urlparse(url).netloc + a['tokenurl']
 			token = json.loads(s.get(token).text)
@@ -54,6 +54,6 @@ class Resolver():
 					play_url = uu
 
 			return {'url':play_url, 'headers':{'referer':url, 'User-Agent':USER_AGENT, 'Host': urlparse(play_url).netloc}}
-		except:
-			return None
+		#except:
+		#	return None
 

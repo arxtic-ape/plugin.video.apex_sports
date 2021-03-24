@@ -108,5 +108,5 @@ class main():
 		if d['url'].startswith('plugin://'):
 			return d['url']
 		if d:
-			return '{}|{}'.format(d['url'], urlencode(d['headers']))
+			return '{}|{}'.format(d['url'], urlencode(d['headers'])), False
 		return ' '

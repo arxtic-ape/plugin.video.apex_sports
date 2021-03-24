@@ -56,7 +56,8 @@ class main():
 					title = u'([COLOR red]LIVE[/COLOR]) {} [B]{}[/B] - [B]{}[/B] {} | {}'.format(homeName, home, away, awayName, live.getText())
 				else:
 					time = e.find('div', {'class':'status'}).getText()
-					time = self.convert_time(time)
+					try: time = self.convert_time(time)
+					except: time = None
 					if time is None:
 						continue
 					title = u'({}) [B]{} - {}[/B]'.format(time, homeName, awayName)
@@ -121,5 +122,5 @@ class main():
 			return d['url']
 
 		if d:
-			return '{}|{}'.format(d['url'], urlencode(d['headers']))
+			return '{}|{}'.format(d['url'], urlencode(d['headers'])), False
 		return ' '

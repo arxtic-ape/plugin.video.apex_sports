@@ -3,10 +3,11 @@ from resources.lib.modules.log_utils import log
 from resources.lib.modules import control
 import requests
 import re
+import os
 try:
-	from urllib.parse import urlencode
+	from urllib.parse import urlencode, quote_plus
 except:
-	from urllib import urlencode
+	from urllib import urlencode, quote_plus
 
 class info():
 	def __init__(self):
@@ -17,6 +18,7 @@ class info():
 		self.paginated = False
 		self.categorized = False
 		self.multilink = False
+		self.searchable = True
 
 
 class main():
@@ -26,30 +28,16 @@ class main():
 		self.url = url
 
 	def events(self):
-		
-		post_data = "page=1&category=&language=&sortBy=0&query=&list=all&itemspp=32&package="
-		post_url = "https://www.streamlive.to/channelsPages-new-1.php"
-		html = requests.post(post_url, data=post_data, headers={"X-Requested-With":"XMLHttpRequest"}).text
-		try:
-			html = html.decode('string_escape')
-		except:
-			html = html.encode('utf-8').decode('unicode_escape')
-		channels = re.findall('data\-id\s*=\s*[\"\'](\d+).+?title\s*=\s*[\"\']([^\"\']+).+?original\s*=\s*[\"\']([^\"\']+)', html, flags=re.DOTALL)
-		events = self.__prepare_channels(channels)
+		events = []
+		with open(os.path.join(control.addonPath,'resources/chs.txt'), 'r') as f:
+			t = f.read().split('\n')
+			for c in t:
+				fid = c.split(' ')[-1].strip()
+				name = c.replace(fid, '').strip()
+				events.append((fid, name))
+
+		events.sort(key=lambda x: x[1])
 		return events
-
-
-	def __prepare_channels(self,channels):
-		new=[]
-		def premium(ch):
-			html = requests.get('https://www.streamlive.to/channel-player?n={}'.format(ch)).text
-			return 'activate now' in html.lower()
-		for channel in channels:
-			if not cache.get(premium, 99999, channel[0]):
-				new.append((channel[0], channel[1], 'https:' + channel[2].replace('\\/', '/')))
-			
-		return new
-
 
 
 	def resolve(self,url):
@@ -62,5 +50,13 @@ class main():
 			return d['url']
 
 		if d:
-			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return ''
+			return '{}|{}'.format(d['url'], urlencode(d['headers'])), False
+		return ' '
+
+	def search(self, query):
+		evs = self.events()
+		events = []
+		for e in evs:
+			if query.lower() in e[1].lower():
+				events.append(e)
+		return events

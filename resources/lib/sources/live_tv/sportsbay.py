@@ -56,29 +56,33 @@ class main():
 			links = []
 			try:
 				l = re.findall('streamframe.+?src\s*=\s*[\"\']([^\"\']+)', html)[0]
-				if 'lowend' not in l:
+				if 'lowend' in l and not bool(re.search('stream/\d/', l)):
+					pass
+				else:
 					links.append((l, 'Link #1'))
 			except:
 				pass
 		else:
 			ls = []
 			for l in links:
-				if 'lowend' not in l:
+				if not('lowend' in l[0] and not bool(re.search('stream/\d/', l[0]))):
 					ls.append(l)
+				
 			links = ls	
 		return links
 
 	def resolve(self,url):
 		from resources.lib.modules import liveresolver
 		d = liveresolver.Liveresolver().resolve(url)
+
 		if not d or d is None:
 			return ' '
 		if d['url'].startswith('plugin://'):
 			return d['url']
 
 		if d:
-			return '{}|{}'.format(d['url'], urlencode(d['headers']))
-		return ''
+			return '{}|{}'.format(d['url'], urlencode(d['headers'])), False
+		return ' '
 
 	def next_page(self):
 		page = self.url.split('/')[-1]

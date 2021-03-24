@@ -55,7 +55,6 @@ class main():
 		current = re.findall("page\%22%3A(\d+)",self.url)[0]
 		next = str(int(current) + 1)
 		next_page = self.url.replace('page%22%3A{}'.format(current), 'page%22%3A{}'.format(next))
-		log(next_page)
 		return next_page
 
 

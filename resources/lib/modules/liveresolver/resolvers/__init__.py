@@ -34,7 +34,7 @@ def resolve(url, referer='', referer_map={}):
 		return None
 
 	modules = check(url, html)
-	
+
 	resolved = False
 	for module in modules:
 		exec('from . import *')

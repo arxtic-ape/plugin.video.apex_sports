@@ -47,11 +47,8 @@ class main():
 
 
 	def resolve(self,url):
-		log(url)
-		log(self.s.get(url).text)
 		from resources.lib.modules import liveresolver
 		d = liveresolver.Liveresolver().resolve(url)
-		log(d)
 		if not d or d is None:
 			return ' '
 		if d['url'].startswith('plugin://'):

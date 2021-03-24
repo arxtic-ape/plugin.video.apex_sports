@@ -122,8 +122,7 @@ class main():
 			kbps = info[4].getText()
 			url = info[5].find('a')['href']
 			title = u"%s (%s, %skbps) - %s"%(name, lang, kbps, service)
-			if 'acestream' not in title.lower():
-				new.append((url,title))
+			new.append((url,title))
 		return new
 
 	def resolve(self,url):
@@ -138,7 +137,7 @@ class main():
 			return d['url']
 
 		if d:
-			return '{}|{}'.format(d['url'], urlencode(d['headers']))
+			return '{}|{}'.format(d['url'], urlencode(d['headers'])), False
 		return ' '
 
 	def search(self, query):

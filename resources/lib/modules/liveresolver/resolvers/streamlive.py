@@ -30,7 +30,6 @@ class Resolver():
 
 			headers = {'Host':'www.streamlive.to','Referer':referer,'Connection':'keep-alive'}
 			self.s.headers.update(headers)
-			#self.s.cookies = jar
 			result = self.s.get(url).text
 			variables = re.findall("var\s*([^\s=]+)\s*=\s*(\[[^\]]+\])\s*;", result)
 			v2 = {}

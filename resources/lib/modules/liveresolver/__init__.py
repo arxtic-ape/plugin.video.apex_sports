@@ -23,6 +23,8 @@ class Liveresolver:
 		self.referer_map = {}
 
 	def resolve(self, url):
+		if '.m3u8' in url:
+			return {'url': url, 'headers': {'user-agent': USER_AGENT}}
 		resolved = []
 		t = Thread(self.__resolve, url, resolved)
 		t.start()
@@ -30,6 +32,7 @@ class Liveresolver:
 		TIMEOUT = int(control.setting("resolver_timeout"))
 		while t.is_alive():
 			if ((time.time() - t1) > TIMEOUT):
+				log('Liveresolver resolve timeout for url: ' + url)
 				del t
 				break
 		try:
@@ -37,6 +40,7 @@ class Liveresolver:
 			u = resolved[0]
 		except:
 			u = None
+
 		return u
 
 
@@ -52,8 +56,8 @@ class Liveresolver:
 		except Exception as e:
 			log('Liveresolver: Error while trying to access {}: \n\n{}'.format(url,e))
 			return None
-	
-		if len(resolvers.check(url, html)) > 0:
+		supported = resolvers.check(url, html)
+		if len(supported) > 0:
 			resolved = resolvers.resolve(url, self.referer_map[url], self.referer_map)
 			if resolved:
 				return resolved
@@ -115,7 +119,7 @@ class Liveresolver:
 				u = re.sub(r'\n+', '', u)
 				u = re.sub(r'\r+', '', u)
 				
-				if not adhosts.isAd(u) and u not in checked and self.__checkUrl(u) and u not in links:
+				if not adhosts.isAd(u) and u not in checked and self.__checkUrl(u) and u not in links and len(links)<15:
 					links.append(u)
 					self.referer_map[u] = url 
 					links += self.__findIframes(u, links, checked)
@@ -186,4 +190,5 @@ class Thread(threading.Thread):
 			resolved = self.func(self.url)
 			self.out.append(resolved)
 		except Exception as e:
-		 	self.out.append(None)
+			log("Liveresolver thread error: " + str(e))
+			self.out.append(None)

@@ -18,6 +18,7 @@ class info():
 		self.paginated = False
 		self.categorized = False
 		self.multilink = False
+		self.searchable = True
 
 
 class main():
@@ -45,4 +46,14 @@ class main():
 		data = {'stream': fid}
 		play_url = requests.post(post_url, data=data, headers={'origin':'https://ustvgo.tv', 'referer':'https://ustvgo.tv/clappr.php?stream={}'.format(fid), 'x-requested-with': 'XMLHttpRequest'}).text
 		head = {'referer': 'https://ustvgo.tv/clappr.php?stream={}', 'user-agent': constants.USER_AGENT}
-		return '{}|{}'.format(play_url, urlencode(head))	
+		return '{}|{}'.format(play_url, urlencode(head)), False
+
+	def search(self, query):
+		chs = self.events()
+
+		evs = []
+		for c in chs:
+			if query.lower() in c[1].lower():
+				evs.append(c)
+
+		return evs

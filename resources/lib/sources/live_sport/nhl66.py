@@ -94,5 +94,5 @@ class main():
 					return ' '
 				media_id = g['streams'][index]['mediaid']
 
-				return 'https://api.nhl66.ir/api/get_master_url/{}.m3u8|Referer=https://nhl66.ir'.format(media_id)
+				return 'https://api.nhl66.ir/api/get_master_url/{}.m3u8|Referer=https://nhl66.ir'.format(media_id), True
 		return ' '

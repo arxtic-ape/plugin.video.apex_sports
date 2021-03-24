@@ -3,7 +3,10 @@ import requests
 from resources.lib.modules.log_utils import log
 from resources.lib.modules.constants import USER_AGENT
 from resources.lib.modules import control
-
+try:
+	from urllib.parse import urlencode
+except:
+	from urllib import urlencode
 
 class info():
 	def __init__(self):
@@ -23,12 +26,10 @@ class main():
 		self.url = url
 		self.post_url = 'https://fullmatchtv.com/wp-admin/admin-ajax.php?td_theme_name=Newspaper&v=10.3.7'
 		self.postData = self.get_post()
-		self.postData['td_filter_value'] =  self.url.split('##')[0]
 		
 
 	def get_post(self):
-		content = requests.get(self.url, headers={'referer': self.base}).text
-		
+		content = requests.get(self.url, headers={'referer': self.base}).text		
 		
 		action = 'td_ajax_block'
 		block_type = re.compile('block_type\s*=\s*[\"\']([^\"\']+)').findall(content)[0]
@@ -81,12 +82,17 @@ class main():
 				out.append((c[0], c[1], '{}.png'.format(c[1].lower())))
 			if c[1] == 'Other sports':
 				break
+			
 		return out
 
 	def events(self, url):
 		out = []
 		import requests
 		s = requests.session()
+		
+		self.url = url
+		self.postData = self.get_post()
+
 		if 'other' in url:
 			data = s.get(url).text
 		else:
@@ -147,5 +153,5 @@ class main():
 			page = int(self.url.split('##')[1])
 		except:
 			page=1
-		next = self.postData['td_filter_value'] + '##%s'%(page+1)
+		next = self.url.split('##')[0] + '##%s'%(page+1)
 		return next

@@ -164,12 +164,11 @@ class main():
 	def resolve(self,url):
 		from resources.lib.modules import liveresolver
 		d = liveresolver.Liveresolver().resolve(url)
-
 		if d:
 			if d['url'].startswith('plugin://'):
 				return d['url']
 
-			return '{}|{}'.format(d['url'], urlencode(d['headers']))
+			return '{}|{}'.format(d['url'], urlencode(d['headers'])), False
 		return ' '
 	
 	def search(self, query):

@@ -97,7 +97,7 @@ class main():
 					return ' '
 				media_id = g['streams'][index]['mediaid']
 				u =  'https://api.mlb66.ir/api/get_master_url/{}.m3u8|Referer=https://mlb66.ir/simulator'.format(media_id)
-				return u
+				return u, True
 
 		return ' '
 

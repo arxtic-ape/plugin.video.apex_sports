@@ -628,6 +628,7 @@ class Addon:
         else: 
             play = resolved
         listitem = xbmcgui.ListItem(infolabels['label'])
+        del infolabels['label']
         listitem.setArt({'icon': img, 'thumb': img})
         listitem.setInfo(item_type, infolabels)
         listitem.setProperty('IsPlayable', 'true')

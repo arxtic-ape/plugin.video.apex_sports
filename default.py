@@ -10,7 +10,7 @@ else:
 
 import sys
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
-from resources.lib.modules import control, cache
+from resources.lib.modules import control, cache, constants
 from resources.lib.modules.log_utils import log
 
 addon = Addon('plugin.video.apex_sports', sys.argv)
@@ -48,6 +48,8 @@ if mode is None:
 	
 #for debug purposes
 elif mode[0]=='keyboard_open':
+
+	
 	keyboard = xbmc.Keyboard('', 'Enter URL:', False)
 	keyboard.doModal()
 	if keyboard.isConfirmed():
@@ -58,10 +60,12 @@ elif mode[0]=='keyboard_open':
 			from resources.lib.modules import liveresolver
 			resolved = liveresolver.Liveresolver().resolve(query)
 			if resolved:
-				resolved = '{}|{}'.format(resolved['url'], urlencode(resolved['headers']))
-				
+				if 'plugin://' in resolved['url']:
+					xbmc.executebuiltin('RunPlugin({})'.format(resolved['url']))
 
-			xbmc.Player().play(resolved)
+				else:
+					resolved = '{}|{}'.format(resolved['url'], urlencode(resolved['headers']))
+					xbmc.Player().play(resolved)
 
 elif mode[0] == 'open_category':
 	category = args['category'][0]
@@ -77,8 +81,8 @@ elif mode[0] == 'open_category':
 			except Exception as e:
 				log(str(e))
 				pass
-	if category == 'live_sport':
-		addon.add_item({'mode': 'search', 'category': category}, {'label': 'Search', 'title': 'Search'}, img=icon_path('search.png'), fanart=fanart,is_folder=True)
+	if category in ['live_sport', 'live_tv']:
+		addon.add_item({'mode': 'search', 'category': category}, {'label': 'Search', 'title': 'Search'}, img=icon_path('search.png'), fanart=fanart,is_folder=False)
 
 	addon.end_of_directory()
 
@@ -90,34 +94,41 @@ elif mode[0] == 'search':
 	if keyboard.isConfirmed():
 		
 		query = keyboard.getText()
-		sources = os.listdir(AddonPath + '/resources/lib/sources/{}'.format(category))
-		for source in sources:
-			if '.pyo' not in source and '__init__' not in source and '__pycache__' not in source and '.pyc' not in source:
-				try:
-					site = source.replace('.py','')
-					exec("from resources.lib.sources.{} import {}".format(category, site))
-					info = eval(site+".info()")
-					srch = False
-					try: srch = info.searchable
-					except: pass
-					if srch:
-						s = eval(site+".main()")
-						events = s.search(query)
-						for event in events:
-							try:
-								img = icon_path(event[2])
-							except:
-								img = icon_path(info.icon)
-							if not info.multilink:
-								addon.add_item({'mode': 'play', 'category': category, 'url': event[0],'title':event[1], 'img': img,'site':site}, {'label': event[1], 'title': event[1].rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
+		xbmc.executebuiltin("Container.Update(%s)"%addon.build_plugin_url({'mode': 'open_search', 'query':query, 'category': category}))
+
+elif mode[0]=='open_search':
+	category = args['category'][0]
+	query = args['query'][0]
+
+	sources = os.listdir(AddonPath + '/resources/lib/sources/{}'.format(category))
+	for source in sources:
+		if '.pyo' not in source and '__init__' not in source and '__pycache__' not in source and '.pyc' not in source:
+			try:
+				site = source.replace('.py','')
+				exec("from resources.lib.sources.{} import {}".format(category, site))
+				info = eval(site+".info()")
+				srch = False
+				try: srch = info.searchable
+				except: pass
+				if srch:
+					s = eval(site+".main()")
+					events = s.search(query)
+					for event in events:
+						try:
+							img = icon_path(event[2])
+						except:
+							img = icon_path(info.icon)
+						if not info.multilink:
+							addon.add_item({'mode': 'play', 'category': category, 'url': event[0],'title':event[1], 'img': img,'site':site}, {'label': event[1], 'title': event[1].rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
+						else:
+							if (control.setting('link_precheck') == 'false'):
+								ctxt = [('Rescrape links', 'RunPlugin(%s)'%addon.build_plugin_url({'mode': 'get_links_refresh', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img, 'timeout': 'true'}))]
 							else:
-								if (control.setting('link_precheck') == 'false'):
-									ctxt = [('Rescrape links', 'RunPlugin(%s)'%addon.build_plugin_url({'mode': 'get_links_refresh', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img, 'timeout': 'true'}))]
-								else:
-									ctxt = []
-								addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label': event[1],'title': event[1]}, img=img, fanart=fanart,  is_folder=True)
-				except:
-					pass
+								ctxt = []
+							addon.add_item({'mode': 'get_links', 'url': event[0], 'category': category, 'site':site , 'title':event[1], 'img': img}, {'label': event[1],'title': event[1]}, img=img, fanart=fanart,  is_folder=True)
+			except Exception as e:
+				log("Error {} - {} - {}".format(category, site, e))
+				pass
 
 	addon.end_of_directory()
 
@@ -151,6 +162,7 @@ elif mode[0] == 'open_site':
 				img = icon_path(info.icon)
 
 			if not info.multilink:
+
 				addon.add_item({'mode': 'play', 'url': event[0], 'category': category, 'title':event[1], 'img': img,'site':site}, {'label': event[1], 'title':event[1].rstrip('[/B]')}, img=img, fanart=fanart, is_folder=False)
 			else:
 				if (control.setting('link_precheck') == 'false'):
@@ -263,13 +275,28 @@ elif mode[0] == 'play':
 
 	exec("from resources.lib.sources.{} import {}".format(category, site))
 	source = eval(site+'.main()')
-	resolved = source.resolve(url)
-	li = xbmcgui.ListItem(title, path=resolved)
-	li.setArt({'thumb': img})
-	li.setInfo(type = 'Video', infoLabels={'Title': title.rstrip('[/B]'), 'mediatype': 'video'})
-	li.setProperty('IsPlayable', 'true')
-	li.setProperty('inputstream.adaptive.manifest_type', 'hls')
-	xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, li)
+	enc = False
+	try:
+		resolved, enc = source.resolve(url)
+	except:
+		resolved = source.resolve(url)
+	if resolved:
+		if 'plugin://' in resolved:
+			xbmc.executebuiltin('RunPlugin({})'.format(resolved))
+		else:
+			li = xbmcgui.ListItem(title, path=resolved)
+			li.setArt({'thumb': img})
+			li.setInfo(type = 'Video', infoLabels={'Title': title.rstrip('[/B]'), 'mediatype': 'video'})
+			li.setProperty('IsPlayable', 'true')
+			if enc:
+				KODI_VERSION_MAJOR = int(xbmc.getInfoLabel('System.BuildVersion').split('.')[0])
+				if KODI_VERSION_MAJOR >= 19:
+					li.setProperty('inputstream', 'inputstream.adaptive')
+				else:
+					li.setProperty('inputstreamaddon', 'inputstream.adaptive')
+
+				li.setProperty('inputstream.adaptive.manifest_type', 'hls')
+			xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, li)
 
 
 
@@ -288,6 +315,7 @@ elif mode[0] == 'play':
 
 elif mode[0]=='tools':
 	addon.add_item({'mode': 'settings'}, {'label':'Settings', 'title':'Settings'}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
+	addon.add_item({'mode': 'set_tz'}, {'label': 'Set Timezone: [B]{}[/B]'.format(constants.get_zone(int(control.setting('timezone_new'))))}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
 	addon.add_item({'mode': 'keyboard_open'}, {'label':'Open URL', 'title':'Open URL'}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
 	addon.add_item({'mode': 'clear_cache'}, {'label':'Clear addon cache', 'title':'Clear addon cache'}, img=icon_path('tools.jpg'), fanart=fanart,is_folder=True)
 
@@ -300,6 +328,30 @@ elif mode[0]=='clear_cache':
 elif mode[0]=='settings':
 	from resources.lib.modules import control
 	control.openSettings()
+
+elif mode[0]=='set_tz':
+	cs = ['[B]Automatically set timezone[/B]']
+	cs += constants.get_zone_categories()
+	dialog = xbmcgui.Dialog()
+	index = dialog.select("Select zone", cs)
+	if index != -1:
+		if index == 0:
+			xbmc.executebuiltin('RunPlugin(%s)'%addon.build_plugin_url({'mode': 'auto_set_tz'}))
+		else:
+			zs = constants.get_zones_by_cat(cs[index])
+			index = dialog.select("Select zone", zs)
+			if index != -1:
+				control.set_setting('timezone_new', str(constants.get_zone_idx(zs[index])))
+				control.infoDialog('Timezone set: ' + str(zs[index]))
+				control.refresh()
+
+elif mode[0]=='auto_set_tz':
+	from tzlocal import get_localzone # $ pip install tzlocal
+	local_tz = get_localzone()
+	control.set_setting('timezone_new', str(constants.get_zone_idx(local_tz.zone)))
+	control.infoDialog('Timezone set: ' + local_tz.zone)
+	control.refresh()
+
 
 
 ##################################################################################################################################
